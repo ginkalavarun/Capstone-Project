@@ -2,9 +2,14 @@
 
 > Source of truth for *how* we build CampusBite. Each entry: **Decision**,
 > **Rationale**, **Consequences / constraints we must honor in code**.
-> Decisions D1–D10 are **user-approved (2026-11-07)** and must not be
-> re-litigated without the user. D11–D22 were proposed by the tutor and
-> **approved by the user (2026-11-07)**; they are binding as well.
+> The user's ten approved decisions (2026-11-07) are **D1–D6, D8–D10, and
+> D23**; D7 (central state machine) is the development contract's rule,
+> recorded between them. None may be re-litigated without the user.
+> D11–D22 were proposed by the tutor and **approved by the user
+> (2026-11-07)**; they are binding as well. (D23 was appended late on
+> 2026-11-07 to record the user's 7th decision — SECRETS — which M1 had
+> folded into D4/D9/requirements instead of logging standalone; D7 keeps its
+> number to protect the verified cross-references.)
 
 ---
 
@@ -312,3 +317,23 @@ remain open and are non-blocking for M2.
   **all placeholder data, documented as dev-only, excluded from prod use.**
 - **D22 `.gitignore` from day one** of code (M2): `*.sqlite3`, `data/`,
   `.env`, `__pycache__`, `node_modules`, `dist`, `.venv`.
+
+## D23 — Secrets and configuration (user decision 7, recorded late)
+
+**Decision:** Actual secrets stay out of source code, Git history, Docker
+images, build args, logs, and frontend bundles. Local `.env` files drive
+development; runtime uses environment injection. `.env.example` contains
+safe placeholders with documentation. **Frontend environment variables never
+contain secrets** (the frontend may only hold non-secret config such as the
+API base URL).
+
+**Rationale:** The user's 7th approved decision (2026-11-07). It is the
+umbrella over the security constraints scattered through D4 (JWT secret
+startup guard; no token/password logging), D9 (OpenAI key backend-only),
+DOCKER-03, and DOC-02. It is recorded here so the complete set of the user's
+ten decisions — D1–D6, D8–D10, D23 — lives in one place. Appended as D23
+rather than renumbering D7, to protect existing cross-references.
+
+**Note for AGENTS.md:** its "Approved Direction" list does not yet contain a
+secrets bullet; adding one is recommended (flagged to the user; no file
+changes made without approval).

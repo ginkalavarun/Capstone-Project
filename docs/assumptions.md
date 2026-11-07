@@ -9,7 +9,7 @@
 
 | ID | Item | Status |
 |---|---|---|
-| A1 | **`AGENTS.md` is not available.** No such file exists anywhere I can see (verified across the workspace/repo, 2026-11-07). You asked me to read it and, if unavailable, to tell you — **I am telling you, and I have not guessed its contents.** Any requirement I have written comes only from the assignment PDF, your 10 decisions, and the development contract. If AGENTS.md imposes extra constraints (style, tooling, repo conventions), send it and I'll reconcile every doc against it. Requirement DOC-04 ("AGENTS.md present in repo") is **parked** until you provide the file. | ⛔ blocked on you |
+| A1 | ~~`AGENTS.md` unavailable~~ — **RESOLVED 2026-11-07.** The user provided the file's content; it was created at the repo root. It codifies the development contract's workflow/boundaries (it matches the contract; no conflicts found). Requirement DOC-04 ("AGENTS.md present in repo") is **satisfied** by the file's presence. | ✅ resolved |
 
 ## Potential conflict with the brief — needs your call
 

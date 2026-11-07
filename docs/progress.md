@@ -9,10 +9,12 @@
 - **Workspace:** git repo, `main` in sync with `origin` =
   `github.com/ginkalavarun/Capstone-Project`; no application code yet.
 - **Current milestone:** **M1 — Planning & source-of-truth documents. ✅ CLOSED**
-- **State:** docs reviewed by user; **D11–D22 approved**. All ten docs are on
-  GitHub (initial commit `26d7a30`, verified via read-only MCP); the approval
-  record + `.gitignore` are committed locally, **push pending on the user**
-  (this session has no push route). Waiting on go-ahead for M2.
+- **State:** **Pushed** — `main` = `9229de9` = `origin/main` (user pushed;
+  verified via read-only MCP: two commits on GitHub, all docs in sync).
+  **AGENTS.md now exists** (created from user-provided content; A1 resolved).
+  DB design `docs/database.md` written, **awaiting approval** (no ORM code,
+  no migrations). Next: M2 scaffold (awaiting go-ahead) and/or schema
+  approval.
 
 ## Task log
 
@@ -37,8 +39,8 @@
       tutor verified via MCP: same SHA, all ten docs present, in sync).
 - [ ] A3–A13 config-default confirmation (non-blocking: M2's `.env.example`
       needs only DATABASE_URL / JWT_SECRET / CORS_ORIGINS / OPENAI_API_KEY).
-- [ ] User provides `AGENTS.md` (or confirms it doesn't exist) → unblock A1 /
-      retire DOC-04.
+- [x] User provides `AGENTS.md` (done 2026-11-07 — file created from
+      user-provided content; A1 resolved, DOC-04 satisfied).
 
 **Next (M2 — awaiting go-ahead):** backend scaffold — FastAPI app, env config,
 CORS allowlist, error format, health, middleware stubs, pytest harness,
@@ -59,6 +61,20 @@ already done). Tests T-M2-01…07 must be green to close M2.
   therefore pending on the user. **User step (terminal with working git
   auth):** `git push origin main` — one commit, five files. The tutor will
   then verify the remote via the read-only MCP.
+
+### 2026-11-07 — AGENTS.md + database design (M3 prep, docs only)
+
+- User pushed `9229de9` from their terminal; MCP verified remote in sync.
+- **AGENTS.md created** at repo root from user-provided content (A1
+  resolved). Referenced-doc audit: all present except `docs/api-contract.md`
+  (expected — comes with the API milestones); `docs/database.md` now exists.
+- **Recovered decision D23 (SECRETS AND CONFIGURATION)** — the user's
+  original 7th approved decision, which the M1 decision log had folded into
+  D4/D9/requirements instead of recording standalone; appended as D23 (no
+  renumbering, to protect the verified cross-references).
+- **Wrote `docs/database.md`** — full M3 schema design (9 tables, three
+  state machines, transactions, concurrency, worked example, design tests).
+  **No ORM code, no migrations** — per instruction, awaiting user approval.
 
 ## Standing rules of engagement (from the development contract)
 
