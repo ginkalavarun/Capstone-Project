@@ -11,7 +11,7 @@
 
 ---
 
-## M1 — Planning & source-of-truth documents ✅ (this stage)
+## M1 — Planning & source-of-truth documents ✅ CLOSED (2026-11-07)
 
 - **Scope:** the ten docs in `docs/` (assignment-brief, decisions,
   requirements, authorization-matrix, test-plan, architecture, milestones,

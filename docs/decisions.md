@@ -3,8 +3,8 @@
 > Source of truth for *how* we build CampusBite. Each entry: **Decision**,
 > **Rationale**, **Consequences / constraints we must honor in code**.
 > Decisions D1–D10 are **user-approved (2026-11-07)** and must not be
-> re-litigated without the user. D11+ are planning decisions proposed by the
-> tutor, pending explicit approval where noted.
+> re-litigated without the user. D11–D22 were proposed by the tutor and
+> **approved by the user (2026-11-07)**; they are binding as well.
 
 ---
 
@@ -268,10 +268,13 @@ server-side per D8.
 
 ---
 
-## D11+ — Planning decisions proposed by the tutor (pending your approval)
+## D11–D22 — Planning decisions (approved by the user, 2026-11-07)
 
-These are needed to make the plan concrete. None of them contradict the
-assignment; flag any you don't like.
+These were proposed by the tutor to make the plan concrete. The user
+approved the full range **D11–D22** on 2026-11-07; they are binding like
+D1–D10. Approval of D16 also resolves assumption A2 (public catalog browsing
+is final). A3–A13 in [assumptions.md](assumptions.md) (config defaults)
+remain open and are non-blocking for M2.
 
 - **D11 Migrations = Alembic**, auto-applied at startup in the documented
   single-worker setup (plus a manual `alembic upgrade head` command for

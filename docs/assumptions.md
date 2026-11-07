@@ -9,13 +9,13 @@
 
 | ID | Item | Status |
 |---|---|---|
-| A1 | **`AGENTS.md` is not available.** The workspace is empty; no such file exists anywhere I can see. You asked me to read it and, if unavailable, to tell you — **I am telling you, and I have not guessed its contents.** Any requirement I have written comes only from the assignment PDF, your 10 decisions, and the development contract. If AGENTS.md imposes extra constraints (style, tooling, repo conventions), send it and I'll reconcile every doc against it. Requirement DOC-04 ("AGENTS.md present in repo") is **parked** until you provide the file. | ⛔ blocked on you |
+| A1 | **`AGENTS.md` is not available.** No such file exists anywhere I can see (verified across the workspace/repo, 2026-11-07). You asked me to read it and, if unavailable, to tell you — **I am telling you, and I have not guessed its contents.** Any requirement I have written comes only from the assignment PDF, your 10 decisions, and the development contract. If AGENTS.md imposes extra constraints (style, tooling, repo conventions), send it and I'll reconcile every doc against it. Requirement DOC-04 ("AGENTS.md present in repo") is **parked** until you provide the file. | ⛔ blocked on you |
 
 ## Potential conflict with the brief — needs your call
 
 | ID | Item | My read | Proposed default |
 |---|---|---|---|
-| A2 | **Public browsing vs "protect backend APIs"** (D16). The brief's auth section says protect backend APIs with auth; its customer list says customers *browse* restaurants/menus. These can conflict. | Two defensible readings: (a) catalog reads are public (standard for food apps; "protect" then applies to everything that touches accounts/orders/money), or (b) *all* endpoints require a logged-in user. | **Reading (a)** — catalog public; every account/order/money/owner/partner/AI endpoint fully protected. It's the industry norm and keeps the browse UX simple; the brief's protection mandate is still fully honored for all sensitive surfaces. **If your grader expects login-before-browsing, flip D16 — it's a one-milestone change (M5).** |
+| A2 | ~~Public browsing vs "protect backend APIs"~~ — **RESOLVED 2026-11-07.** | The user approved D11–D22, which includes D16. Reading (a) is final: catalog reads are public; every account/order/money/owner/partner/AI endpoint is fully protected per D8. | ✅ Closed — no further action. |
 
 ## Proposed defaults — confirm or override (all small, all in M2/M10 config)
 
@@ -37,8 +37,9 @@
 
 - The 10 decisions (D1–D10) are **approved and final** per your 2026-11-07
   message — they are recorded in decisions.md and are not open.
-- Tutor proposals D11–D22 are pending your review of *this* doc set, but none
-  contradict the brief; the only reading-sensitive one is D16 (tracked as A2).
+- Tutor proposals D11–D22 were **approved by the user on 2026-11-07** and are
+  binding decisions (recorded in decisions.md); the reading-sensitive D16 is
+  thereby settled (A2 resolved).
 
 ## Backlog (not scheduled — excluded by default, see excluded-features.md)
 

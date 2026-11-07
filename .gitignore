@@ -1,0 +1,22 @@
+# Secrets (D7): never commit real env files
+.env
+!.env.example
+
+# Local data (D1/D22): databases and local data dirs stay out of Git
+*.sqlite3
+*.db
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+
+# Node / frontend (D12)
+node_modules/
+dist/
+
+# OS / editors
+.DS_Store
