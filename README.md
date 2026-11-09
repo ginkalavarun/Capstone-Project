@@ -137,6 +137,9 @@ user action.
 
 - `docs/api-contract.md` — every endpoint: shapes, roles, ownership rules, status codes.
 - `AGENTS.md` — development rules for AI assistants working on this repo.
+- `docs/manual-testing-guide.md` — step-by-step manual walkthrough of every
+  role (browse → cart → checkout → owner → delivery → review → refund →
+  cancel → stats/reminders/insights) with expected results.
 - `docs/` — requirements, decisions, assumptions, database design, authorization
   matrix, test plan, architecture, milestone plan, progress.
 
