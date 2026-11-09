@@ -29,7 +29,7 @@
 
 | ID | Test | Asserts |
 |---|---|---|
-| T-M3-01 | Schema | All 8 tables exist with expected columns/constraints (DB-01) |
+| T-M3-01 | Schema | All **9** tables exist with expected columns/constraints — brief's 8 + `refund_requests` (DB-01, count reconciled) |
 | T-M3-02 | Relationships | ORM navigations work both directions for every brief-listed relationship (DB-02) |
 | T-M3-03 | FK enforcement | Inserting an order referencing a missing restaurant raises IntegrityError (SQLite pragma active, D1) |
 | T-M3-04 | Snapshot immutability | Changing a menu item's name/price does not change existing order_items rows (D3) |
@@ -41,8 +41,27 @@
 | T-M3-10 | Persistence | Data written via one session is visible from a new session/process (DB volume semantics) |
 | T-M3-11 | Concurrency | Two sessions transition the same order simultaneously → exactly one wins with a valid edge, the other gets INVALID_TRANSITION (no exception 500, no lost/corrupt state) (D1) |
 | T-M3-12 | Seed | `python -m app.seed` creates documented dev fixtures; re-running is idempotent; no real credentials appear |
+| T-M3-13 | FK enforcement (full) | Orphan insert rejected for **every** FK column (13 FK columns in the reconciled schema, parametrized) with the pragma active (D1) |
+| T-M3-14 | Uniqueness (DB) | Duplicate email, second restaurant per owner, review-per-order, refund-request-per-order → IntegrityError |
+| T-M3-15 | Ledger unique | Second `mock_paid` or `refunded` row for the same order → IntegrityError (`UNIQUE(order_id, type)`) |
+| T-M3-16 | Reminder dedupe | Duplicate (order, status-episode) insert no-ops via `ON CONFLICT DO NOTHING`; a distinct episode inserts |
+| T-M3-17 | Check constraints (parametrized) | Bad role; bad order/payment/refund status; rating 0 and 6; qty 0; negative price; `total ≠ subtotal+fee`; `line ≠ unit×qty` — all rejected |
+| T-M3-18 | Snapshot immutability (expanded) | Menu rename/reprice/soft-delete leaves past `order_items` rows and the order's fee snapshot unchanged (D3) |
+| T-M3-19 | Provisioning rollback | Owner+restaurant provisioning fails on the restaurant insert → **neither** row exists (D2) |
+| T-M3-20 | Checkout rollback | Checkout with one invalid item → zero order/item/ledger rows written (D3) |
+| T-M3-21 | Conflicting transitions | Two sessions race the same transition (CAS) → exactly one succeeds, the other gets INVALID_TRANSITION; no corrupt row (D1, D7) |
+| T-M3-22 | Duplicate prevention | Double refund approval → exactly one ledger `refunded` row; double review/request → clean 409 (app) backed by DB uniques |
+| T-M3-23 | Reminder lifecycle | create → resolve on progress → a new episode in a different status creates a new row (D6, D20) |
+| T-M3-24 | `delivered_at` | Set once on DELIVERED; preserved through REFUNDED; NULL on CANCELLED orders (D31) |
+| T-M3-25 | Idempotency unique | Same customer+key → IntegrityError; a **different** customer with the same key string → allowed (customer-scoped, D34) |
 
 ## M4 — Authentication & authorization
+
+> Batch 2 status (2026-11-07): T-M4-01…13 and 18, 19 implemented and
+> green (`tests/test_auth.py`). T-M4-15 exists in its batch-2 half (token
+> binding via `/me`); the full cross-resource halves of T-M4-14/15/16/17
+> materialize as the owned endpoints land (batches 3–6) — the batch-2
+> versions pin the foundation those tests build on.
 
 | ID | Test | Asserts |
 |---|---|---|
@@ -68,6 +87,11 @@
 
 ## M5 — Restaurants & menus
 
+> Batch 3 status (2026-11-07): T-M5-01…10 implemented and green
+> (`tests/test_restaurants.py`). The batch-3 halves of T-M4-14 (sweep over
+> the three owner endpoints) and T-M4-16 (owner-B isolation, data untouched)
+> land in the same file; the remaining halves materialize with later batches.
+
 | ID | Test | Asserts |
 |---|---|---|
 | T-M5-01 | List paginated | `limit/offset` math correct; total reported (RST-01, API-03) |
@@ -83,6 +107,11 @@
 
 ## M6 — Checkout & order placement
 
+> Batch 4 status (2026-11-07): T-M6-01…14 implemented and green
+> (`tests/test_checkout.py`), incl. the threaded race test for the
+> idempotency backstop. Part of T-M4-15 (two-customer read isolation)
+> materialized in T-M6-08.
+
 | ID | Test | Asserts |
 |---|---|---|
 | T-M6-01 | Place order | 201; status PLACED; items + `total_cents` returned (CK-01) |
@@ -94,8 +123,20 @@
 | T-M6-07 | Total math | Mixed items: exact integer-cent sum incl. documented delivery fee (CK-06) |
 | T-M6-08 | Own history | Caller sees only own orders; status + date filters work; paginated (ORDR-01) |
 | T-M6-09 | Detail shape | Items (snapshots), status, `status_updated_at`, payment state, refund state present (ORDR-02) |
+| T-M6-10 | Idempotency key required | Missing key → 422; >64 chars → 422; 1–64 chars accepted (D34) |
+| T-M6-11 | Identical retry | Same key + same payload twice → the **same** order id returned twice; exactly one order and one ledger row exist (D34) |
+| T-M6-12 | Key reuse, different payload | Same key, different items → `409 IDEMPOTENCY_MISMATCH`; no new order (D34) |
+| T-M6-13 | Competing checkouts | Two concurrent identical checkouts (same key) → exactly one order row; both callers eventually see a valid order (D34) |
+| T-M6-14 | Cross-customer key isolation | Customer B reusing customer A's key string → B's own distinct order; A's order untouched (D34) |
 
 ## M7 — Lifecycle & delivery
+
+> Batch 5 status (2026-11-08): T-M7-01…20 implemented and green
+> (`tests/test_lifecycle.py`; 25 collected cases). T-M7-01 is a 63-case
+> in-test sweep of every action × every from-status; T-M7-03+04 run as one
+> parametrized test; T-M7-20 is threaded. The last deferred halves of
+> T-M4-16 (owner axis on orders + dashboards) and T-M4-17 (partner axis:
+> unassigned partner denied updates/detail) materialize in the same file.
 
 | ID | Test | Asserts |
 |---|---|---|
@@ -115,8 +156,19 @@
 | T-M7-14 | Partner detail | Includes customer delivery details for assigned orders (DELV-02) |
 | T-M7-15 | Partner history | Past completed deliveries listed (DELV-03) |
 | T-M7-16 | Partner listing for owners | Owner gets id + display name of **active** partners only — no emails; non-owner → 403 (DELV-04, D5) |
+| T-M7-17 | No re-stamp on no-op | Re-POSTing the order's **current** status changes nothing: `status_updated_at` unchanged (D33, ORDER-11) |
+| T-M7-18 | Cancellation reversal | Cancel from PLACED → CANCELLED + payment `refunded` + exactly one `refunded` ledger row, atomically; **no** `refund_requests` row (D29) |
+| T-M7-19 | Duplicate cancellation | Second cancel → 409; still exactly one `refunded` ledger row (D29) |
+| T-M7-20 | Cancel vs accept race | Concurrent cancel + accept on a PLACED order → exactly one wins; state is consistent (CAS, D7) |
 
 ## M8 — Owner dashboard, stats, reminders, middleware
+
+> ✅ All of M8 is now implemented and green: T-M8-01 (owner orders) in
+> `tests/test_lifecycle.py` (batch 5); T-M8-02 + T-M8-11 (D35 stats) in
+> `tests/test_stats.py` (batch 6); T-M8-03…07 (scanner: fake-clock
+> detection/dedupe/resolve, lifespan wiring, error tolerance) in
+> `tests/test_scanner.py` and T-M8-08…10 (middleware log contract) in
+> `tests/test_middleware.py` (batch 7, 2026-11-08).
 
 | ID | Test | Asserts |
 |---|---|---|
@@ -129,8 +181,16 @@
 | T-M8-07 | Error isolation | Scan raising (e.g. transient DB error) → logged, app + next tick survive (BG-05) |
 | T-M8-08 | Request logging | Middleware logs method + path; never token/password (MW-01) |
 | T-M8-09 | Response timing | Middleware records per-request duration observable in logs/monitoring (MW-02) |
+| T-M8-10 | Request ID + no secrets in logs | `X-Request-Id` propagated/added; captured logs contain method+path+status+duration but no Authorization/token/password/keys (MW-03) |
+| T-M8-11 | Stats definitions | D35 metric set: gross/refunded/net arithmetic is exact in cents; delivered count includes later-refunded orders; net = gross − refunded (D35, DASH-02) |
 
 ## M9 — Refunds & reviews
+
+> Batch 6 status (2026-11-08): T-M9-01…10, 12, 13, 14 implemented and
+> green (`tests/test_refunds.py` + `tests/test_reviews.py`; 21 tests) —
+> incl. a threaded double-approval race strengthening T-M9-04.
+> T-M9-11 (public per-dish listing) is optional (REV-04, M/O = O) and is
+> deferred, not a batch-6 requirement.
 
 | ID | Test | Asserts |
 |---|---|---|
@@ -145,8 +205,18 @@
 | T-M9-09 | One review | Second → 409 (REV-02) |
 | T-M9-10 | DB constraint | Direct duplicate review insert → IntegrityError (REV-03) |
 | T-M9-11 | Public reviews (O) | Read-only listing per dish/restaurant; no write path (REV-04) |
+| T-M9-12 | Review after later refund | Order DELIVERED → then REFUNDED → customer **can** still review (eligibility = `delivered_at`, D31, REV-05) |
+| T-M9-13 | No re-request after rejection | After an owner rejection, a second refund request on the same order → 409 (D28, REF-02) |
+| T-M9-14 | Cancellation is not a refund request | A cancelled order has **no** `refund_requests` row, but has one `refunded` ledger event (D29) |
 
-## M10 — AI insights (OpenAI mocked)
+## M10 — AI insights (OpenAI mocked) — ✅ executed 2026-11-08 (batch 10)
+
+Executed as `tests/test_insights.py` (14 tests, all passing): the T-M10-01…10
+assertions above are covered, with the numbering extended to `test_m10_01…14`
+(added: role table, exact stats, PII exclusion from the prompt, no-key
+degradation, per-user rate-limit isolation, deterministic empty history,
+and the three upstream-error mappings). Provider is always a mock;
+no network calls.
 
 | ID | Test | Asserts |
 |---|---|---|
@@ -171,6 +241,8 @@
 | T-M11-04 | Protected routes | Unauthenticated → redirected to login; role mismatch → 403 page (FE-04) |
 | T-M11-05 | API client | Bearer header attached; 401 mid-session → clear token + redirect (FE-05) |
 | T-M11-06 | Loading/errors | Async views show loading then error state on failure (FE-14) |
+| T-M11-07 | 401 loop guard | Two consecutive 401s clear the token and redirect to login **exactly once** (no loop) (FE-17) |
+| T-M11-08 | Accessibility | Forms have programmatic labels; actions are keyboard-reachable buttons/links with aria states (FE-16) |
 
 ## M12 — Customer frontend (FE)
 
@@ -187,6 +259,7 @@
 | T-M12-09 | Refund request | Form with reason; only when DELIVERED; shows pending/refunded/rejected (FE-10) |
 | T-M12-10 | AI insights page | Question box, loading, error states, answer render (FE-10) |
 | T-M12-11 | Responsive (manual) | Desktop + mobile viewports: nav, dashboards, cart usable (FE-13) |
+| T-M12-12 | Cart isolation on account change | Logging out/in as a different user clears the previous account's cart; a mixed-restaurant add prompts to replace (FE-17, D15) |
 
 ## M13 — Owner + delivery frontends (FE)
 
@@ -209,3 +282,5 @@
 | T-M14-02 | Preview via compose (O) | `docker compose up` serves frontend + backend together (FE-15) |
 | T-M14-03 | Clean-repo scan | No `.env`, `*.sqlite3`, `data/`, secrets, or node_modules in `git ls-files` (DOC-02) |
 | T-M14-04 | E2E golden path (manual) | Register → browse → cart → order → owner accepts/preps/assigns → partner delivers → review + refund → AI question; all three dashboards; reminders fire on a stale order (manual script in README) |
+| T-M14-05 | Learning log | `docs/learning-log.md` covers all ten contract topics, each citing actual implemented filenames/functions (DOC-05) |
+| T-M14-06 | API contract sync | Every implemented endpoint appears in `docs/api-contract.md` with shape/roles/status codes; money in cents (EUR); timestamps UTC (DOC-06) |

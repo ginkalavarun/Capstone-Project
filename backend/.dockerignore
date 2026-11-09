@@ -1,0 +1,13 @@
+# Keep secrets and local artifacts OUT of the image (D7, D22, D23).
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+data/
+*.db
+*.sqlite3
+tests/
+.git/
+.DS_Store

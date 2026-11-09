@@ -41,6 +41,7 @@ The current direction is:
 - A periodic overdue-order reminder scanner.
 - OpenAI integration for customer-isolated order insights.
 - A documented single-backend-worker configuration.
+- Secrets and configuration per D23: real secrets stay out of source, Git, images, build args, logs, and frontend bundles; local `.env` + documented `.env.example`; runtime environment injection.
 
 Do not reinterpret these decisions without approval.
 

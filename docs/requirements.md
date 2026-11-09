@@ -11,7 +11,7 @@
 
 ---
 
-## 1. Authentication (milestone M4)
+## 1. Authentication (milestone M4 — ✅ complete in batch 2, 2026-11-07)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
@@ -37,7 +37,7 @@
 | AUTHZ-05 | Full endpoint coverage in [authorization-matrix.md](authorization-matrix.md) | CT | M | T-M4-14 (parametrized sweep) |
 | AUTHZ-06 | Unauthorized access returns 401 (unauthenticated) / 403 (role) / 404 (not owner — hides existence) | CT | M | T-M4-18 |
 
-## 3. Restaurants & menus (milestone M5)
+## 3. Restaurants & menus (milestone M5 — ✅ complete in batch 3, 2026-11-07; MENU-07 enforced at checkout, batch 4)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
@@ -52,7 +52,7 @@
 | MENU-07 | Unavailable dishes are excluded from checkout (M6) | CT | M | T-M6-04 |
 | RST-03 | Dish deletion is a *soft* remove (unavailable) so historical order snapshots stay coherent | D3 | O | T-M5-10 |
 
-## 4. Cart, checkout & order placement (milestone M6)
+## 4. Cart, checkout & order placement (milestone M6 — ✅ complete in batch 4, 2026-11-07)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
@@ -62,12 +62,16 @@
 | CK-03 | `order_items` snapshots **item name + unit price cents** at order time | CT, D3 | M | T-M6-03 |
 | CK-04 | Validate: positive quantities, non-negative prices, items exist, available, same restaurant | D3 | M | T-M6-04, T-M6-05 |
 | CK-05 | On placement: payment status `mock_paid` + a **payment ledger record** created | BR §5 | M | T-M6-06 |
-| CK-06 | Order totals: `total_cents` = Σ(unit_price_cents × qty) + documented delivery fee (integer cents, USD) | D3, D19 | M | T-M6-07 |
+| CK-06 | Order totals: `total_cents` = Σ(unit_price_cents × qty) + documented delivery fee (integer cents, EUR — D26) | D3, D26 | M | T-M6-07 |
+| CK-07 | Checkout requires a bounded client idempotency key (1–64 chars), stored on the order | batch 2026-11-07, D34 | M | T-M6-10 |
+| CK-08 | Identical retry (same customer + key + payload) returns the **original** order; no second order/ledger row | D34 | M | T-M6-11 |
+| CK-09 | Same key with a different payload → `409 IDEMPOTENCY_MISMATCH` | D34 | M | T-M6-12 |
+| CK-10 | Competing identical checkouts create exactly one order (DB unique backstop) | D34 | M | T-M6-13 |
 | PAY-01 | Payment ledger keeps one row per payment event (mock_paid, later refunded) | BR §5, §10 | M | T-M6-06, T-M9-04 |
 | ORDR-01 | View **own** order history (paginated, filter by status + date) | BR §2A8, §6 | M | T-M6-08, T-M4-15 |
 | ORDR-02 | Order detail includes items (snapshots), status timeline, payment + refund state | BR §2A9 | M | T-M6-09 |
 
-## 5. Order lifecycle (milestone M7)
+## 5. Order lifecycle (milestone M7 — ✅ complete in batch 5, 2026-11-08)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
@@ -81,8 +85,9 @@
 | ORDER-08 | Invalid transitions rejected with 409 + machine-readable code | BR §4, D14 | M | T-M7-01 |
 | ORDER-09 | Every transition stamps `status_updated_at` | D6 | M | T-M7-11 |
 | ORDER-10 | Customer tracks order status (polling detail endpoint) | BR §2A9 | M | T-M7-12 |
+| ORDER-11 | A no-op re-POST of the current state must **not** re-stamp `status_updated_at` (it would reset the reminder clock) | D33, D6 | M | T-M7-17 |
 
-## 6. Delivery partners (milestone M7)
+## 6. Delivery partners (milestone M7 — ✅ complete in batch 5, 2026-11-08)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
@@ -92,12 +97,12 @@
 | DELV-04 | Partner listing for owners: id + display name only, owner-protected, active only | D5 | M | T-M7-16 |
 | DELV-05 | Partner cannot cancel, modify, or refund anything | BR §3, D8 | M | T-M4-17 |
 
-## 7. Owner dashboard, stats, reminders (milestone M8)
+## 7. Owner dashboard, stats, reminders (milestone M8 — ✅ complete in batches 5–7, 2026-11-08)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
 | DASH-01 | Owner views incoming orders for **their** restaurant, filter by status + date (paginated) | BR §2B5, §6 | M | T-M8-01, T-M4-16 |
-| DASH-02 | Basic restaurant statistics: orders by status, revenue (snapshot cents), items sold, avg order value, date range — own restaurant only | BR §2B9, D19 | M | T-M8-02 |
+| DASH-02 | Basic restaurant statistics, the **D35 metric set** (orders by status, gross mock-paid, refunded, net retained, delivered count, items sold, avg order value, date range) — own restaurant only; no metric is blindly called "revenue" | BR §2B9, D19, D35 | M | T-M8-02 |
 | BG-01 | Lifespan-managed scanner every 60 s (single worker); fresh session per scan | BR §8, D1, D6 | M | T-M8-03 (fake clock) |
 | BG-02 | Finds PLACED/ACCEPTED orders with `status_updated_at` > 15 min | BR §8, D6 | M | T-M8-04 |
 | BG-03 | Dedupe per (order, status) episode; resolve when order progresses | D6, D20 | M | T-M8-05 |
@@ -105,13 +110,14 @@
 | BG-05 | Scan errors logged, never crash the app; clean shutdown | D6 | M | T-M8-07 |
 | MW-01 | Middleware logs request method + path (no tokens/passwords) | BR §8, D4 | M | T-M8-08 |
 | MW-02 | Middleware measures + records API response time | BR §8 | M | T-M8-09 |
+| MW-03 | Middleware attaches/propagates an `X-Request-Id`; logs never contain auth headers, tokens, passwords, keys, or full delivery addresses | batch 2026-11-07 | M | T-M8-10 |
 
-## 8. Refunds & reviews (milestone M9)
+## 8. Refunds & reviews (milestone M9 — ✅ complete in batch 6, 2026-11-08; optional REV-04 public listing deferred)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
 | REF-01 | Customer requests refund **only after DELIVERED**, with a required reason | BR §5 | M | T-M9-01, T-M9-02 |
-| REF-02 | **One refund request per order** (subsequent attempts rejected) | BR §5, CT | M | T-M9-03 |
+| REF-02 | **One refund request per order, permanently** — including after rejection; no second-request flow (D28) | BR §5, CT, D28 | M | T-M9-03, T-M9-13 |
 | REF-03 | Owner (of the order's restaurant) approves or rejects | BR §5 | M | T-M9-05, T-M4-16 |
 | REF-04 | Approved → payment status `refunded` + refund ledger record; **idempotent** (double-approval never creates a second refund) | BR §5, CT, D7 | M | T-M9-04 |
 | REF-05 | Rejected → return status `rejected`; order status unchanged (stays DELIVERED) | BR §5 | M | T-M9-06 |
@@ -120,8 +126,9 @@
 | REV-02 | **One review per order** (second rejected; update optional) | CT | M | T-M9-09 |
 | REV-03 | One review per delivered order enforced in DB (unique constraint) | BR §10 | M | T-M9-10 |
 | REV-04 | Reviews visible to other customers on the dish/restaurant (read-only) | BR §2A11 | O | T-M9-11 |
+| REV-05 | Review eligibility = order **actually delivered** (`delivered_at` set), including orders later refunded; no review edit/delete in this batch | D31 | M | T-M9-12 |
 
-## 9. AI order insights (milestone M10)
+## 9. AI order insights (milestone M10 — ✅ complete in batch 10, 2026-11-08; live provider call is a user action)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
@@ -141,7 +148,7 @@
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
-| DB-01 | Tables: Users, Restaurants, MenuItems, Orders, OrderItems, Reviews, PaymentLedger, ReminderLogs | BR §10 | M | T-M3-01 |
+| DB-01 | Tables: Users, Restaurants, MenuItems, Orders, OrderItems, Reviews, PaymentLedger, ReminderLogs **+ RefundRequests** (the 9th, justified by BR §5 return mechanics; count reconciled 2026-11-07) | BR §10/§5, database.md | M | T-M3-01 |
 | DB-02 | Relationships per brief (customer→orders; restaurant→items/orders; order→items; delivered order→1 review; order→payment entries; partner→orders) | BR §10 | M | T-M3-02 |
 | DB-03 | FKs enforced on every connection (SQLite pragma) | D1 | M | T-M3-03 |
 | DB-04 | `order_items` snapshot columns (item_name, unit_price_cents) immutable after order | D3 | M | T-M3-04 |
@@ -153,8 +160,10 @@
 | DB-10 | Persistence across container restart (volume) | D1 | M | T-M3-10 |
 | DB-11 | Concurrency: overlapping order updates behave correctly (no lost writes/exceptions) | D1 | M | T-M3-11 |
 | DB-12 | Seed script: dev-only sample data, documented, no real credentials | D2, D21 | M | T-M3-12 |
+| DB-13 | `orders.delivered_at` set once on DELIVERED, never cleared (survives REFUNDED); review eligibility uses it (D31) | D31 | M | T-M3-24, T-M9-12 |
+| DB-14 | Idempotency columns on orders + UNIQUE(customer_id, idempotency_key) + request_hash (D34) | D34 | M | T-M3-25 |
 
-## 11. Frontend (milestones M11–M13)
+## 11. Frontend (milestones M11–M13 — ✅ complete in batch 8, 2026-11-08; browser E2E verified, FE-15 optional-compose deferred)
 
 | ID | Requirement | Src | M/O | Test |
 |---|---|---|---|---|
@@ -173,6 +182,8 @@
 | FE-13 | Responsive layout (desktop + mobile) | BR §9 | M | T-M12-11 (manual) |
 | FE-14 | Loading states + error boundaries on all async views | BR §9 | M | T-M11-06 |
 | FE-15 | Vite dev server + build; preview mode via compose (optional service) | D12, D13 | O | T-M14-02 |
+| FE-16 | Accessible labels + keyboard-usable controls on all forms/actions (batch M8) | batch 2026-11-07 | M | T-M11-08 |
+| FE-17 | 401/token-expiry handling redirects to login **once** — no endless redirect loop; cart is cleared/isolated on account change | batch 2026-11-07, D4, D15 | M | T-M11-07, T-M12-12 |
 
 ## 12. API, Docker, deployment (milestones M2, M14)
 
@@ -184,11 +195,13 @@
 | API-04 | CORS explicit allowlist, configurable, no wildcard | D10 | M | T-M2-03 |
 | DOCKER-01 | Backend Dockerfile; starts correctly in container | BR §11 | M | T-M2-04 |
 | DOCKER-02 | `docker-compose.yml` runs the backend; DB in a persistent volume; port exposed | BR §11, D1 | M | T-M2-05 |
-| DOCKER-03 | Secrets out of image and repo; `.env.example` with placeholders + docs | BR §11, D7, D22 | M | T-M2-06 |
+| DOCKER-03 | Secrets out of image and repo; `.env.example` with placeholders + docs | BR §11, D23, D22 | M | T-M2-06 |
 | DOC-01 | README: overview, tech, features, run frontend, run backend via compose, env vars, DB setup, API docs, CLI provisioning, single-worker + rate-limiter caveats | BR §13 | M | T-M14-01 |
 | DOC-02 | `.gitignore` excludes `*.sqlite3`, `data/`, `.env`, `node_modules`, `dist`, `__pycache__`, `.venv` | D1, D22 | M | T-M2-07, T-M14-03 |
 | DOC-03 | Public GitHub repo ready (user pushes; never auto-pushed by us) | BR §submission | M | T-M14-04 (manual) |
-| DOC-04 | `AGENTS.md` present in repo (content pending user-provided file) | user | M | — (blocked, see assumptions A1) |
+| DOC-04 | `AGENTS.md` present in repo (content pending user-provided file) | user | M | ✅ present (A1 resolved) |
+| DOC-05 | `docs/learning-log.md` explaining the ten contract topics with actual implemented filenames/function names | batch 2026-11-07 (M9) | M | T-M14-05 |
+| DOC-06 | `docs/api-contract.md` exists and stays synchronized with the implemented API (endpoint, shapes, roles/ownership, status codes, pagination, money/timestamp conventions) | batch 2026-11-07 (M3) | M | T-M14-06 |
 
 ---
 

@@ -334,6 +334,179 @@ DOCKER-03, and DOC-02. It is recorded here so the complete set of the user's
 ten decisions — D1–D6, D8–D10, D23 — lives in one place. Appended as D23
 rather than renumbering D7, to protect existing cross-references.
 
-**Note for AGENTS.md:** its "Approved Direction" list does not yet contain a
-secrets bullet; adding one is recommended (flagged to the user; no file
-changes made without approval).
+**Note for AGENTS.md:** its "Approved Direction" list now contains the
+secrets bullet — **added 2026-11-07** with the implementation batch
+(approved by the user; nothing else in that file was touched).
+
+---
+
+## D24–D35 — Batch decisions (user-approved, 2026-11-07 implementation batch)
+
+These are **implementation decisions explicitly approved in the user's
+2026-11-07 batch prompt**: *"Use the following policies where they answer the
+actual open question … Do not claim these policies were explicitly required
+by the assignment. Record them as approved implementation decisions from this
+prompt."* They resolve the open items **N1–N8** of
+[database.md](database.md) §10.2.
+
+### D24 — One owner has at most one restaurant (resolves N4)
+
+**Decision:** one owner account owns **at most one** restaurant.
+`restaurants.owner_id` is UNIQUE and NOT NULL.
+
+**Consequences:** provisioning (D2) creates owner + restaurant as one atomic
+pair; there is no multi-restaurant UI/API; an owner's restaurant is found by
+`owner_id = caller` (the D8 ownership anchor).
+
+### D25 — One restaurant per order
+
+**Decision:** an order contains dishes from **exactly one** restaurant. The
+checkout payload names the restaurant; every item must belong to it (CK-04).
+Mixed-restaurant carts are rejected 422.
+
+### D26 — Application currency: EUR (resolves the D3/A10 currency pick)
+
+**Decision:** the single documented application currency is **EUR**; all
+`*_cents` fields hold euro cents (1 cent = €0.01).
+
+**Provenance (recorded honestly):** D3 (user-approved) required *choosing and
+documenting one currency* but named none. The recorded draft of D3 and
+assumption A10 proposed USD; the user never confirmed A3–A13. The batch
+instruction: *"Retain an already approved currency; otherwise use EUR and
+document it consistently."* Since no specific currency was ever user-approved,
+**EUR applies**. Field names stay currency-agnostic (`*_cents`); a later
+switch to USD would be a label/documentation change only — no schema or
+arithmetic change.
+
+### D27 — Refunds are always the full order total (resolves N1)
+
+**Decision:** an approved refund covers the order's **full `total_cents`,
+including the delivery fee**. No partial refunds in v1.
+
+### D28 — One refund request per order, permanently (incl. after rejection)
+
+**Decision:** exactly **one** refund request per order, **including after a
+rejection** — there is no "second request" flow in v1. The UNIQUE
+`order_id` on `refund_requests` is the DB backstop (database.md §6).
+
+### D29 — Cancellation performs a full mock reversal (resolves N2)
+
+**Decision:** when a customer cancels a `PLACED` order, **one transaction**:
+`status → CANCELLED`, `payment_status → refunded`, and **one `refunded`
+payment-ledger event** (amount = `total_cents`). Cancellation is **not** a
+refund request: it creates **no `refund_requests` row**.
+
+**Consequences:** the earlier open policy (database.md §5.3) is closed. No
+`void` payment status is needed — the `refunded` payment value is reached two
+ways, disambiguated by the order status (CANCELLED = pre-delivery reversal,
+no request row; REFUNDED = post-delivery refund, request row exists). The
+ledger `UNIQUE(order_id, type)` backstop prevents a double reversal.
+
+### D30 — Post-delivery refund saga (confirms database.md §5.5)
+
+**Decision:** owner-approved refund on a `DELIVERED` order, **one
+transaction**: request → `approved` (+`decided_by`/`decided_at`), order
+`status → REFUNDED`, `payment_status → refunded`, exactly **one** `refunded`
+ledger event (amount = `total_cents` per D27). Rejection leaves the order
+`DELIVERED` and payment `mock_paid`; the one-request rule (D28) still holds.
+
+### D31 — Review eligibility = actually delivered, including after refund (resolves N3)
+
+**Decision:** a review may be submitted once the order has **actually been
+delivered**, including orders that were later refunded. Eligibility is the
+new non-null `orders.delivered_at` timestamp (set **once** when the order
+becomes `DELIVERED`, never cleared) — **not** the current order status.
+`delivered_at` is preserved through `REFUNDED`. No review
+editing/deletion in this batch.
+
+### D32 — Menu items referenced by orders are deactivated, never hard-deleted
+
+**Decision:** `DELETE /menu-items/{id}` sets `available = 0` (soft remove,
+RST-03). Hard delete never happens: `menu_item_id` provenance FKs on
+`order_items` (RESTRICT) would orphan receipt lines.
+
+### D33 — Timestamps: UTC everywhere; ISO-8601 text in SQLite
+
+**Decision:** all persisted timestamps are **UTC**. The application generates
+every timestamp (aware UTC); the database never generates time. On SQLite,
+SQLAlchemy `DateTime` stores **ISO-8601 text**
+(`YYYY-MM-DD HH:MM:SS.ffffff +00:00`); with a fixed offset, lexicographic
+order = chronological order, and the scanner's
+`status_updated_at < now − 15 min` comparison is plain text comparison.
+`status_updated_at` is stamped **only when status actually changes** (a no-op
+re-POST must not refresh it — that would reset the reminder clock).
+
+### D34 — Checkout idempotency keys (resolves N5 with the right mechanism)
+
+**Decision:** `POST /orders` **requires** a client-generated **idempotency
+key** (1–64 chars, e.g. `crypto.randomUUID()`), stored on the order, scoped to
+the **authenticated customer**: UNIQUE(`customer_id`, `idempotency_key`). The
+order also stores `request_hash` (SHA-256 of the canonicalized payload:
+restaurant id + sorted menu-item/quantity pairs).
+
+- Identical retry (same key, same hash) → returns the **original** order; no second order or payment row.
+- Same key, different payload (hash mismatch) → `409 IDEMPOTENCY_MISMATCH`.
+- Competing identical requests → the DB unique lets exactly one insert win; the loser re-reads and returns the winner's order.
+- The frontend generates one key per checkout intent and reuses it only on retry.
+
+This **supersedes** the earlier N5 idea of a 60-second near-duplicate 409,
+which would have false-positived on a legitimate re-order of the same dish.
+
+### D35 — Owner statistics metric set (refines D19)
+
+**Decision:** `GET /owner/stats?from&to` (own restaurant only) returns:
+
+| Metric | Definition (documented; never blindly called "revenue") |
+|---|---|
+| `orders_by_status` | counts of the restaurant's orders in the date range by current status |
+| `gross_mock_paid_cents` | Σ `total_cents` over the range's placed orders (every placed order has a `mock_paid` event) |
+| `refunded_cents` | Σ `refunded` ledger events in the range (cancellation reversals **and** approved refunds, D29/D30) |
+| `net_retained_cents` | `gross_mock_paid_cents − refunded_cents` |
+| `delivered_count` | orders actually delivered in the range (`delivered_at` in range) — **including** later-refunded ones (D31) |
+| `items_sold` | Σ order-item quantities (D19) |
+| `avg_order_value_cents` | `gross_mock_paid_cents` ÷ placed-order count (D19) |
+
+All integer cents, EUR (D26). The same definitions live in
+`docs/api-contract.md` and the README.
+
+### D36 — AI insights implementation shape (batch 10, refines D9)
+
+**Decision:** `POST /api/v1/insights/question` (customer role only) is
+implemented in `app/services/insights.py` + `app/api/v1/insights.py`:
+
+- **Degradation contract:** no `OPENAI_API_KEY` → `200` with
+  `provider: "unconfigured"`, `answer: null`, plus the exact app-computed
+  `stats` (a clear configuration signal; **no** fake AI output, and no
+  503 — the feature is "available but unconfigured"). Empty order history →
+  `provider: "deterministic"` with a plain sentence and no provider call.
+- **Provider seam:** `create_app(settings, openai_client_factory=None)` —
+  production builds the real `openai` client lazily from the env key; tests
+  inject fakes, so the suite never touches the network. A live paid call
+  was **not** made during development (user action).
+- **Rate limiting:** `InMemoryRateLimiter` (sliding window, per user id,
+  `AI_RATE_LIMIT`/`AI_RATE_WINDOW_MINUTES`). In-memory state resets on
+  restart and is correct only for the documented single-worker deployment
+  (D9 limitation, documented in README + api-contract).
+- **Prompt hygiene (AI-02/03/06):** context = the caller's own orders
+  (window-bounded), PII-light (no addresses/e-mails/names of other people),
+  amounts in integer cents with the currency stated. Question length-bounded
+  by `AI_MAX_QUESTION_CHARS`.
+- **Upstream failure mapping:** provider 429 → `429 AI_UPSTREAM_RATE_LIMITED`,
+  timeout → `504 AI_TIMEOUT`, other API errors → `502 AI_UPSTREAM_ERROR`;
+  provider error text is never forwarded.
+
+### D37 — Batch 8 frontend compliance fixes (applied 2026-11-08; verify)
+
+Three small source changes made while bringing the frontend suite to green
+and during the browser E2E. They implement contract behavior, not cosmetic
+changes; the user is asked to review/confirm them (they were flagged in the
+previous session's handoff):
+
+1. `OrderCard` renders `customer_name` + `delivery_address` when present —
+   required for the partner list view (DELV-01: partners must see who/where
+   to deliver). Verified in the real browser during the E2E.
+2. `ConfirmButton`'s armed-state `aria-label` is the confirm label itself
+   (a "(confirm action)" suffix had broken accessibility-name consumers).
+3. `Menu.jsx` filter submission maps the inputs to the reader's key names
+   (`search`/`min`/`max`) — the old shorthand silently dropped both price
+   filters (genuine bug, found via instrumentation).

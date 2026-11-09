@@ -1,0 +1,14 @@
+# CampusBite backend — pinned (D4: pin and test dependency versions).
+# Python 3.12; all versions verified installable and tested together.
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+email-validator==2.2.0
+SQLAlchemy==2.0.36
+alembic==1.14.0
+bcrypt==4.2.1
+PyJWT==2.10.1
+httpx==0.28.1
+pytest==8.3.4
+openai==1.58.0

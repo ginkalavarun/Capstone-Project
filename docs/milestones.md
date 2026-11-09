@@ -8,6 +8,18 @@
 > **Gate rule:** a milestone is done when *all* its mandatory (M) tests
 > pass. Optional (O) items are built only after the milestone's M items are
 > green. Nothing moves to the next milestone on red tests.
+>
+> **2026-11-07 batch mapping.** The user's implementation batch renumbers the
+> remaining work; it maps onto these canonical milestone IDs (which the
+> requirement/test IDs are bound to) as follows: batch 1 = **M2 + M3**
+> (foundation, config, database); batch 2 = **M4**; batch 3 = **M5** (+ create
+> `docs/api-contract.md`, DOC-06); batch 4 = **M6** (+ idempotency, D34);
+> batch 5 = **M7**; batch 6 = **M9 + M8-stats** (D35); batch 7 = **M8**
+> (middleware + scanner); batch 8 = **M11 + M12 + M13**; batch 9 = **M14**
+> (+ learning-log, DOC-05); stretch = **M10** (OpenAI; optional in this batch,
+> mandatory for the final assignment). M1 (planning docs) stays CLOSED.
+> Batch 1's gate: configuration + migration + database tests all pass (or a
+> precise external execution blocker is documented).
 
 ---
 
@@ -111,7 +123,7 @@
   a no-op with one ledger row; reviews unique per delivered order.
 - **Tests:** T-M9-01…11.
 
-## M10 — AI order insights
+## M10 — AI order insights — ✅ complete (batch 10, 2026-11-08)
 
 - **Scope:** `POST /insights` (customer-only): context builder (SQL by caller
   id, bounded, de-PII'd, app-computed aggregates — D9); OpenAI client
@@ -122,7 +134,7 @@
   outage degrades gracefully; the frontend never sees the key.
 - **Tests:** T-M10-01…10.
 
-## M11 — Frontend foundation
+## M11 — Frontend foundation — ✅ complete (batch 8, 2026-11-08)
 
 - **Scope:** Vite + React scaffold; React Router with all role routes;
   `AuthContext` (token in localStorage per brief, trade-off documented);
@@ -133,7 +145,7 @@
   unauthenticated user can't reach role pages; nav adapts to role.
 - **Tests:** T-M11-01…06.
 
-## M12 — Customer frontend
+## M12 — Customer frontend — ✅ complete (batch 8, 2026-11-08; browser E2E verified)
 
 - **Scope:** restaurants page (search/filter), menu page (cents→$ formatting,
   add-to-cart), cart page (state + persistence, D15), checkout page (shows
@@ -144,7 +156,7 @@
   browser end-to-end by a customer.
 - **Tests:** T-M12-01…11 (T-M12-11 responsive is a manual checklist).
 
-## M13 — Owner + delivery frontends
+## M13 — Owner + delivery frontends — ✅ complete (batch 8, 2026-11-08; browser E2E verified)
 
 - **Scope:** owner dashboard: incoming orders (filters), accept/prep actions,
   assign picker (from protected partner listing), refund approve/reject,

@@ -1,0 +1,41 @@
+# CampusBite — Docker Compose (D1, D11, D23)
+#
+#   cp .env.example .env        # set a real JWT_SECRET first (D4)
+#   docker compose up --build
+#
+# Non-destructive shutdown:
+#   docker compose down         # stops containers, KEEPS the volume
+#   Never use `docker compose down -v` while you care about the data —
+#   `-v` deletes the named volume (the database).
+#
+# Secrets (D23): nothing sensitive is baked into the image. Values are
+# interpolated from `.env` / the shell environment at compose time and
+# injected into the container as environment variables.
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "${BACKEND_HOST_PORT:-8000}:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////data/campusbite.db}
+      - JWT_SECRET=${JWT_SECRET:?set a real JWT_SECRET in .env (see .env.example)}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES:-60}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
+      - REMINDER_SCANNER_ENABLED=${REMINDER_SCANNER_ENABLED:-true}
+      - REMINDER_INTERVAL_SECONDS=${REMINDER_INTERVAL_SECONDS:-60}
+      - REMINDER_STALE_MINUTES=${REMINDER_STALE_MINUTES:-15}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - campusbite-data:/data  # the SQLite file lives here (D1, DB-10)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  campusbite-data:
