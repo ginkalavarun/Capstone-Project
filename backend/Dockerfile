@@ -19,7 +19,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Never run as root.
-RUN useradd --create-home appuser && chown -R appuser:appuser /app
+# /data must exist and be owned by appuser: a *first-use* named volume is
+# initialized from the image's directory ownership, and an empty root-owned
+# /data makes SQLite fail with SQLITE_CANTOPEN when the non-root app runs.
+RUN useradd --create-home appuser \
+    && chown -R appuser:appuser /app \
+    && mkdir -p /data && chown appuser:appuser /data
 USER appuser
 
 EXPOSE 8000

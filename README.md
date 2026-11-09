@@ -33,15 +33,36 @@ docker compose up --build
 **Never** use `docker compose down -v` while you care about the data —
 `-v` deletes the database volume.
 
-> Note: this machine had no Docker CLI when the project was built, so the
-> compose path is implemented and documented but was verified by the user,
-> not by the authoring session.
+> The compose path is fully verified (2026-11-09): `docker compose up
+> --build` boots healthy, migrations apply, the database is created
+> appuser-owned at `/data/campusbite.db`, and data survives
+> `docker compose up --force-recreate` (volume kept, no `-v`). The two
+> scaffold Docker tests (container boot, volume persistence) pass in an
+> isolated checkout and skip automatically when no docker CLI is present.
+> On a machine where Docker IS installed, note that those tests reuse the
+> local compose project (same volume) and run `app.seed` — if your dev
+> database has real data you may prefer to run them from a throwaway copy.
 
 ## Creating accounts
 
 Customers self-register in the app. **Owners, their restaurants, and
 delivery partners are provisioned with a local CLI** — there is deliberately
-no public privileged registration (D2):
+no public privileged registration (D2).
+
+**If you run the Docker compose stack**, provision *inside the container* so
+the accounts land in the same database the app uses (`$DATABASE_URL` inside
+the container, i.e. `/data/campusbite.db`):
+
+```bash
+docker compose exec -T backend python -m app.provision owner \
+  --email sam@example.org --name "Sam Kapoor" \
+  --restaurant "Slice House" --address "10 Green Line, Block A" \
+  --fee-cents 200
+docker compose exec -T backend python -m app.provision partner \
+  --email dana@example.org --name "Dana Kim"
+```
+
+For **local (non-Docker) development** use the same CLI from the venv:
 
 ```bash
 cd backend
@@ -57,6 +78,9 @@ python -m app.provision owner \
 # Delivery partner:
 python -m app.provision partner --email dana@example.org --name "Dana Kim"
 ```
+
+The CLI prints a generated password **once** — store it in a git-ignored
+local file; it is never committed, logged, or echoed by the app.
 
 ## Local development (no Docker)
 
@@ -90,7 +114,7 @@ is in the backend CORS allowlist, keep them in sync).
 ## Running the tests
 
 ```bash
-cd backend  && .venv/bin/python -m pytest   # 183 passed, 3 skipped (Docker-only tests)
+cd backend  && .venv/bin/python -m pytest   # 183 tests; the 3 Docker tests skip without a docker CLI
 cd frontend && npx vitest run               # 101 passed
 cd frontend && npm run build                # production build
 ```

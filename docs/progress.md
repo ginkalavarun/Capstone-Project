@@ -571,6 +571,47 @@ screen-checked — unit-test level only.
 - **Live OpenAI call: NOT made** — the provider integration is implemented
   and mocked-tested; a live paid request requires the user's key/approval.
 
+## 2026-11-09 — final setup, verification & submission prep
+
+Environment + verification batch (no feature work). Actual results:
+
+- **Docker installed on this Mac** (arm64, M5 Max): colima v0.10.3 +
+  lima v2.3.0 official arm64 binaries (Homebrew here is an x86_64/Rosetta
+  install and failed to build lima from source); docker CLI 29.9.3 +
+  Compose 5.7.0 via brew. Running directly on the user's machine (not a
+  sandbox).
+- **Bug found & fixed (real failure):** the committed Dockerfile ran the
+  app as non-root but never created `/data`; a first-use named volume is
+  root-owned, so SQLite failed (`SQLITE_CANTOPEN`) and the container
+  crash-looped. Fix: create `appuser` + `/data` (owned) in one RUN before
+  `USER appuser` (`backend/Dockerfile`). **Uncommitted — commit before
+  submission.**
+- **Compose verified end-to-end:** build → healthy on :8000 → migrations
+  applied → `/data/campusbite.db` appuser-owned → a customer survives
+  `up --force-recreate` (login 200 after recreate; re-register 409) →
+  owner + partner provisioned **in-container** via `docker compose exec`
+  → credentials saved to git-ignored `demo-credentials.txt` (never
+  printed in reports).
+- **Browser smoke (full lifecycle, UI-driven, one session):** customer
+  registers, browses, orders; owner accept→preparing→ready→assign;
+  partner out-for-delivery→delivered; final state DELIVERED / mock_paid /
+  650 €-cents with `delivered_at`; cross-customer read → 404. Zero
+  unexpected console errors.
+- **Mobile-width check (390×844):** restaurants, menu, delivery dashboard,
+  delivery order — single-column, no overflow; screenshots reviewed.
+- **Clean-clone check (committed `bd9d693`):** backend 181/183 passed —
+  the 2 Docker scaffold tests **fail on the pre-fix Dockerfile** (container
+  never serves health) and **pass** in an isolated worktree copy containing
+  the fix (separate compose project, throwaway volume). Frontend:
+  101/101 tests passed, production build OK.
+- **OpenAI:** key not configured (both `.env` files, commented) — live call
+  remains a user action per the directive.
+- **Docs:** README updated (verified compose note, in-container
+  provisioning commands, tests note) and this entry.
+- **git status:** 3 modified tracked files (Dockerfile, .gitignore,
+  README) — all to be committed by the user; untracked `.env`,
+  `backend/.env`, `demo-credentials.txt` are git-ignored.
+
 ## Standing rules of engagement (from the development contract)
 
 - Small tasks, approval before edits, real test results only, no invented
