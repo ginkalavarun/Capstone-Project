@@ -73,9 +73,11 @@ docker compose up --build
 
 A fresh clone has an empty database. Add data as described in the next section.
 
+**Demo logins:** once the backend is running, load the sample data with `docker compose exec -T backend python -m app.seed`. Then start the frontend (see "Running the frontend locally") and log in at <http://localhost:5173> with the accounts listed below. For example: `priya@example.org` / `Customer-Pass-1` (customer), `sam@example.org` / `Owner-Pass-1` (restaurant owner), and `dana@example.org` / `Partner-Pass-1` (delivery partner).
+
 ## Creating accounts and demo data
 
-Customers register themselves in the app. Owners, their restaurants, and delivery partners are created with a local command, because privileged roles cannot be registered publicly.
+In the browser, only **customers** can register: open the frontend, click Register, and use a new email and password (each account needs its own email). **Restaurant owners (with their restaurant) and delivery partners cannot register in the browser.** They are created with a local command, because privileged roles must not be publicly self-registered. Once they exist, they log in on the same Login page as everyone else.
 
 ### Option A: sample data in one command
 
